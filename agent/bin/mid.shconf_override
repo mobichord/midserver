@@ -1,0 +1,23 @@
+############################################################################
+# This is the place for customers's customization. After any changes,
+# you have to re-install the service (bin/mid.sh remove, bin/mid.sh install)
+# to put them into effect.
+############################################################################
+
+# Uncomment the lines below and set some name for the current mid server.
+# This allows to run multiple mid servers as service on the same host.
+#APP_NAME="this_mid_app_name"
+#APP_LONG_NAME="this_mid_long_app_name"
+
+# Put a user name here if you want to run the service by a non-root user.
+# The specified user is going to be the owner of the entire agent directory.
+# If leaving empty, the owner is unchanged.
+RUN_AS_USER=
+
+# Put a group name here who is going to be the owner group of the entire agent directory.
+# If leaving empty, the group is unchanged.
+GROUP_NAME=
+
+# Set a flag to control whether the script will prompt for confirmation before changing
+# owner or group of the agent directory
+PROMPT_BEFORE_OWNERSHIP_CHANGE=true

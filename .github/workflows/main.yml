@@ -1,0 +1,27 @@
+name: ServiceNow Midserver
+
+on:
+  push:
+    branches:
+      - master
+env:
+  IMAGE_NAME: mobichord/midserver
+
+jobs: 
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Docker login
+        run:  docker  login -u ${{secrets.DOCKER_USER}} -p ${{secrets.DOCKER_PASSWORD}}
+
+      - name: Build docker image
+        run: |
+            make  -e IMAGE_NAME=${IMAGE_NAME} build
+
+      - name: Push docker image to Docker Hub
+        run: |
+            make -e  IMAGE_NANE=${IMAGE_NAME} release
+
+

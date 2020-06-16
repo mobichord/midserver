@@ -1,0 +1,108 @@
+#! /bin/sh
+
+APP_NAME="mid"
+APP_LONG_NAME="ServiceNow MID Server"
+PIDDIR="../work"
+SYSTEMD_KILLMODE=process
+SHCONF_OVERRIDE_FILE="${SHCONF_FILE}_override"
+. "$SHCONF_OVERRIDE_FILE"
+
+#############################################################################
+# The detection functions below are borrowed from the wrapper script mid.sh
+#############################################################################
+
+# Method to check if systemd is running.
+# Returns 0 if systemd is found, otherwise returns 1.
+_systemdDetection() {
+    if [ ! -d "/etc/systemd" ] ; then
+        return 1
+    fi
+
+    resolvePidofLocation
+    result=`$PIDOF_BIN systemd`
+    return $?
+}
+
+# Method to check if upstart is running.
+# Returns 0 if upstart is found, otherwise returns 1.
+_upstartDetection() {
+    if [ ! -d "/etc/init" ] ; then
+        return 1
+    fi
+
+    INITCTL_BIN="initctl"
+    result=`command -v $INITCTL_BIN 2>/dev/null`
+    if [ $? -ne 0 ] ; then
+        INITCTL_BIN="/sbin/initctl"
+        if [ ! -x "$INITCTL_BIN" ] ; then
+            return 1
+        fi
+    fi
+
+    result=`$INITCTL_BIN version 2>/dev/null`
+    if [ $? -eq 0 ] ; then
+        # if the word "upstart" is in the result, then we assume upstart is installed.
+        result=`echo $result | grep upstart`
+        if [ $? -eq 0 ] ; then
+            return 0
+        fi
+    fi
+
+    # The command /sbin/initctl may fail if the user doesn't have enough privilege
+    # but that doesn't mean upstart is not present.
+    # In this case we can assume upstart exists if the service was previously
+    # installed by the root user.
+    if  [ -f "/etc/init/${APP_NAME}.conf" ] ; then
+        return 0
+    fi
+
+    return 1
+}
+
+# Upstart daemon will require root to start/stop
+# We work around by using SystemV initd instead
+_upstartDetection
+if [ $? -eq 0 ] ; then
+    _systemdDetection
+    if [ $? -ne 0 ] ; then
+        SERVICE_MANAGEMENT_TOOL=initd
+    fi
+fi
+
+# apply additional file permissions and ownership
+if [ "$1" = "install" -o "$1" = "installstart" ] ; then
+    _bin_dir=`echo $REALPATH | rev | cut -d "/" -f2- | rev`
+    _agent_dir="${_bin_dir}/.."
+    # convert relative path to absolute path
+    _agent_dir=`cd "${_agent_dir}"; pwd`
+    echo "The agent directory is $_agent_dir"
+
+    if [ -d $_agent_dir ] ; then
+        _allow_ownership_change=1
+        if [ "X$PROMPT_BEFORE_OWNERSHIP_CHANGE" = "Xtrue" -o "X$PROMPT_BEFORE_OWNERSHIP_CHANGE" = "XTRUE" ] ; then
+            read -p "Do you want to block all other user access and change the ownership of the entire agent directory at $_agent_dir based on the mid.shconf_override settings (Enter yes or YES to confirm) ? " _reply
+            case "$_reply" in
+                'yes'|'YES')
+                    ;;
+                *)
+                    _allow_ownership_change=0
+                    ;;
+            esac
+        fi
+
+        if [ $_allow_ownership_change -eq 1 ] ; then
+            echo "Block all other user access..."
+            chmod -R o-rwx $_agent_dir
+
+            if [ "X$RUN_AS_USER" != "X" ] ; then
+                echo "Change user ownership to $RUN_AS_USER ..."
+                chown -R $RUN_AS_USER $_agent_dir
+            fi
+
+            if [ "X$GROUP_NAME" != "X" ] ; then
+                echo "Change group ownership to $GROUP_NAME ..."
+                chown -R :$GROUP_NAME $_agent_dir
+            fi
+        fi
+    fi
+fi
