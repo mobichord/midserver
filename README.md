@@ -23,4 +23,4 @@ The following variables mandatory:
 
 # CI/CD
 
-Use github action for ci/cd.
+github action is used for ci/cd.
