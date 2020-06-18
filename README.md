@@ -10,7 +10,7 @@ Start docker container
 docker run -d --name=midserver \
        -v /opt/midserver/logs:/opt/agent/logs \ 
         --env-file .env  \
-       -p 443:443 -p 80:80 andrewpgit/midserver:latest
+       -p 443:443 -p 80:80 mobichord/midserver:latest
 ```
 Madatory variables
 ```
